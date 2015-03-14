@@ -1,12 +1,15 @@
-CC = gcc
+#CC = gcc
 CFLAGS = -Wall
 DEBUG = -g
 LIBS = -lm
 OPT = -O3
-export MAXKMERLENGTH = 64
+export MAXKMERLENGTH = 191
 export CATEGORIES = 2
 DEF = -D MAXKMERLENGTH=$(MAXKMERLENGTH) -D CATEGORIES=$(CATEGORIES)
-VELVET_DIR=../velvet
+VELVET_DIR=velvet
+
+.PHONY: velvet
+.DEFAULT: default
 
 ifdef BIGASSEMBLY
 override DEF := $(DEF) -D BIGASSEMBLY
@@ -29,7 +32,10 @@ ifdef SINGLE_COV_CAT
 override DEF := $(DEF) -D SINGLE_COV_CAT
 endif
 
-default : cleanobj velvet oases doc
+# don't make the docs by default, needs TeX installation
+default : cleanobj velvet oases
+
+all : cleanobj velvet oases doc
 
 ifdef BUNDLEDZLIB
 Z_LIB_DIR=$(VELVET_DIR)/third-party/zlib-1.2.3
@@ -40,7 +46,7 @@ zlib:
 	cd $(Z_LIB_DIR); ./configure; make; rm minigzip.o; rm example.o
 
 clean-zlib:
-	cd $(Z_LIB_DIR) && make clean
+	make -C $(Z_LIB_DIR) clean
 else
 Z_LIB_FILES=-lz
 
@@ -65,21 +71,21 @@ OBJ = obj/oases.o obj/transcript.o obj/scaffold.o obj/locallyCorrectedGraph2.o o
 OBJDBG = $(subst obj,obj/dbg,$(OBJ))
 
 velvet :
-	cd $(VELVET_DIR) && make -e obj
+	make -e -C $(VELVET_DIR) obj 
 
 velvetdbg :
-	cd $(VELVET_DIR) && make -e obj/dbg
+	make -e -C $(VELVET_DIR) obj/dbg
 
 velvet_de :
-	cd $(VELVET_DIR) && make -e obj_de
+	make -e -C $(VELVET_DIR) obj_de
 
 velvetdbg_de :
-	cd $(VELVET_DIR) && make -e obj/dbg_de
+	make -e -C $(VELVET_DIR) obj/dbg_de
 
 clean :
 	rm -f obj/*.o obj/dbg/*.o ./oases 
-	cd $(VELVET_DIR) && make clean
-	cd doc && make clean
+	make -C $(VELVET_DIR) clean
+	make -C doc clean
 
 cleanobj: 
 	rm -f obj/*.o obj/dbg/*.o 
@@ -87,7 +93,7 @@ cleanobj:
 doc: OasesManual.pdf
 
 OasesManual.pdf: doc/manual/OasesManual.tex
-	cd doc; make
+	make -C doc
 
 oases : obj $(OBJ) 
 	$(CC) $(CFLAGS) $(OPT) $(LDFLAGS) -o oases $(OBJ) $(VELVET_FILES) $(Z_LIB_FILES) $(LIBS)
